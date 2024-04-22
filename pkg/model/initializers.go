@@ -8,10 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	grpc "github.com/go-skynet/LocalAI/pkg/grpc"
 	"github.com/hashicorp/go-multierror"
 	"github.com/phayes/freeport"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sys/cpu"
 )
 
 var Aliases map[string]string = map[string]string{
@@ -106,6 +108,23 @@ func (ml *ModelLoader) grpcModel(backend string, o *Options) func(string, string
 			if err != nil {
 				return "", fmt.Errorf("failed allocating free ports: %s", err.Error())
 			}
+
+			spew.Dump("*** BACKEND ***", backend)
+
+			// SERTAC
+			// if strings.Contains(backend, "llama-cpp") {
+			// 	if cpu.X86.HasAVX512 {
+			// 		grpcProcess = "llama-cpp-cpu_avx512"
+			// 	} else if cpu.X86.HasAVX2 {
+			// 		grpcProcess = "llama-cpp-cpu_avx2"
+			// 	} else if cpu.X86.HasAVX {
+			// 		grpcProcess = "llama-cpp-cpu_avx"
+			// 	} else {
+			// 		grpcProcess = "llama-cpp-cpu"
+			// 	}
+			// }
+
+			spew.Dump("*** GRPC PROCESS ***", grpcProcess)
 
 			// Make sure the process is executable
 			if err := ml.startProcess(grpcProcess, o.model, serverAddress); err != nil {
@@ -236,6 +255,23 @@ func (ml *ModelLoader) GreedyLoader(opts ...Option) (grpc.Backend, error) {
 	for _, b := range o.externalBackends {
 		allBackendsToAutoLoad = append(allBackendsToAutoLoad, b)
 	}
+
+	// SERTAC
+	for i, v := range allBackendsToAutoLoad {
+        if v == "llama-cpp" {
+			if cpu.X86.HasAVX512 {
+				allBackendsToAutoLoad[i] = "llama-cpp-cpu_avx512"
+			} else if cpu.X86.HasAVX2 {
+				allBackendsToAutoLoad[i] = "llama-cpp-cpu_avx2"
+			} else if cpu.X86.HasAVX {
+				allBackendsToAutoLoad[i] = "llama-cpp-cpu_avx"
+			} else {
+				allBackendsToAutoLoad[i] = "llama-cpp-cpu"
+			}
+        }
+    }
+
+	spew.Dump("*** ALL BACKENDS TO AUTOLOAD ***", allBackendsToAutoLoad)
 
 	if o.model != "" {
 		log.Info().Msgf("Trying to load the model '%s' with all the available backends: %s", o.model, strings.Join(allBackendsToAutoLoad, ", "))

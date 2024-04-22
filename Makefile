@@ -70,7 +70,7 @@ UNAME_S := $(shell uname -s)
 endif
 
 ifeq ($(OS),Darwin)
-	
+
 	ifeq ($(OSX_SIGNING_IDENTITY),)
 		OSX_SIGNING_IDENTITY := $(shell security find-identity -v -p codesigning | grep '"' | head -n 1 | sed -E 's/.*"(.*)"/\1/')
 	endif
@@ -308,6 +308,7 @@ build: prepare backend-assets grpcs ## Build the project
 	$(info ${GREEN}I BUILD_TYPE: ${YELLOW}$(BUILD_TYPE)${RESET})
 	$(info ${GREEN}I GO_TAGS: ${YELLOW}$(GO_TAGS)${RESET})
 	$(info ${GREEN}I LD_FLAGS: ${YELLOW}$(LD_FLAGS)${RESET})
+	echo $(CGO_FLAGS)
 	CGO_LDFLAGS="$(CGO_LDFLAGS)" $(GOCMD) build -ldflags "$(LD_FLAGS)" -tags "$(GO_TAGS)" -o $(BINARY_NAME) ./
 
 build-minimal:
@@ -636,7 +637,11 @@ else
 endif
 
 backend-assets/grpc/llama-cpp: backend-assets/grpc backend/cpp/llama/grpc-server
-	cp -rfv backend/cpp/llama/grpc-server backend-assets/grpc/llama-cpp
+# SERTAC
+	cp -rfv backend/cpp/llama/grpc-server-cpu backend-assets/grpc/llama-cpp-cpu
+	cp -rfv backend/cpp/llama/grpc-server-cpu_avx backend-assets/grpc/llama-cpp-cpu_avx
+	cp -rfv backend/cpp/llama/grpc-server-cpu_avx2 backend-assets/grpc/llama-cpp-cpu_avx2
+	cp -rfv backend/cpp/llama/grpc-server-cpu_avx512 backend-assets/grpc/llama-cpp-cpu_avx512
 # TODO: every binary should have its own folder instead, so can have different metal implementations
 ifeq ($(BUILD_TYPE),metal)
 	cp backend/cpp/llama/llama.cpp/build/bin/default.metallib backend-assets/grpc/
@@ -684,7 +689,7 @@ docker:
 		--build-arg MAKEFLAGS="$(DOCKER_MAKEFLAGS)" \
 		--build-arg BUILD_TYPE=$(BUILD_TYPE) \
 		-t $(DOCKER_IMAGE) .
-	
+
 docker-aio:
 	@echo "Building AIO image with base $(BASE_IMAGE) as $(DOCKER_AIO_IMAGE)"
 	docker build \
