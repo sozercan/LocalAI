@@ -36,7 +36,7 @@ The steps involved are:
 
 ## Dataset preparation
 
-We are going to need a dataset or a set of datasets. 
+We are going to need a dataset or a set of datasets.
 
 Axolotl supports a variety of formats, in the notebook and in this example we are aiming for a very simple dataset and build that manually, so we are going to use the `completion` format which requires the full text to be used for fine-tuning.
 
@@ -118,7 +118,7 @@ And we convert it to the gguf format that LocalAI can consume:
 
 # Convert to gguf
 git clone https://github.com/ggerganov/llama.cpp.git
-pushd llama.cpp && make LLAMA_CUBLAS=1 && popd
+pushd llama.cpp && make LLAMA_CUDA=1 && popd
 
 # We need to convert the pytorch model into ggml for quantization
 # It crates 'ggml-model-f16.bin' in the 'merged' directory.

@@ -1,6 +1,6 @@
 name: Build and Release
 
-on: 
+on:
 - push
 - pull_request
 
@@ -16,19 +16,6 @@ concurrency:
 
 jobs:
   build-linux:
-    strategy:
-      matrix:
-        include:
-          - build: 'avx2'
-            defines: ''
-          - build: 'avx'
-            defines: '-DLLAMA_AVX2=OFF'
-          - build: 'avx512'
-            defines: '-DLLAMA_AVX512=ON'
-          - build: 'cuda12'
-            defines: ''
-          - build: 'cuda11'
-            defines: ''
     runs-on: ubuntu-latest
     steps:
       - name: Clone
@@ -44,7 +31,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install build-essential ffmpeg protobuf-compiler
       - name: Install CUDA Dependencies
-        if: ${{ matrix.build == 'cuda12' || matrix.build == 'cuda11' }}
         run: |
           if [ "${{ matrix.build }}" == "cuda12" ]; then
             export CUDA_VERSION=12-3
@@ -73,9 +59,6 @@ jobs:
           cd grpc && cd cmake/build && sudo make --jobs 5 --output-sync=target install
       - name: Build
         id: build
-        env:
-          CMAKE_ARGS: "${{ matrix.defines }}"
-          BUILD_ID: "${{ matrix.build }}"
         run: |
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
           go install google.golang.org/protobuf/cmd/protoc-gen-go@latest

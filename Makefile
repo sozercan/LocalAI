@@ -98,7 +98,7 @@ endif
 
 ifeq ($(BUILD_TYPE),cublas)
 	CGO_LDFLAGS+=-lcublas -lcudart -L$(CUDA_LIBPATH)
-	export LLAMA_CUBLAS=1
+	export LLAMA_CUDA=1
 	export WHISPER_CUBLAS=1
 	CGO_LDFLAGS_WHISPER+=-L$(CUDA_LIBPATH)/stubs/ -lcuda
 endif

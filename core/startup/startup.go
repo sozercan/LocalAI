@@ -87,6 +87,8 @@ func Startup(opts ...config.AppOption) (*config.BackendConfigLoader, *model.Mode
 		}
 	}
 
+	// SERTAC
+	// TODO: decompress here
 	if options.AssetsDestination != "" {
 		// Extract files from the embedded FS
 		err := assets.ExtractFiles(options.BackendAssets, options.AssetsDestination)

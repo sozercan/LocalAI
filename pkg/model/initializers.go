@@ -257,6 +257,7 @@ func (ml *ModelLoader) GreedyLoader(opts ...Option) (grpc.Backend, error) {
 	}
 
 	// SERTAC
+	// should allBackendsToAutoLoad be a map[string]string?
 	for i, v := range allBackendsToAutoLoad {
         if v == "llama-cpp" {
 			if cpu.X86.HasAVX512 {

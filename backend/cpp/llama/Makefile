@@ -5,9 +5,9 @@ CMAKE_ARGS?=
 BUILD_TYPE?=
 ONEAPI_VARS?=/opt/intel/oneapi/setvars.sh
 
-# If build type is cublas, then we set -DLLAMA_CUBLAS=ON to CMAKE_ARGS automatically
+# If build type is cublas, then we set -DLLAMA_CUDA=ON to CMAKE_ARGS automatically
 ifeq ($(BUILD_TYPE),cublas)
-	CMAKE_ARGS+=-DLLAMA_CUBLAS=ON
+	CMAKE_ARGS+=-DLLAMA_CUDA=ON
 # If build type is openblas then we set -DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS
 # to CMAKE_ARGS automatically
 else ifeq ($(BUILD_TYPE),openblas)
@@ -73,21 +73,21 @@ ifneq (,$(findstring sycl,$(BUILD_TYPE)))
 	cd llama.cpp && mkdir -p build && cd build && cmake .. $(CMAKE_ARGS) && cmake --build . --config Release"
 else
 # SERTAC
-	export CMAKE_ARGS="-DLLAMA_AVX=off -DLLAMA_AVX2=off -DLLAMA_AVX512=off -DLLAMA_FMA=off -DLLAMA_F16C=off"
+# TODO: compress
+# TODO better way to handle cmake defs
+	cd llama.cpp && mkdir -p build && cd build && cmake .. "-DCMAKE_POSITION_INDEPENDENT_CODE=on -DLLAMA_NATIVE=off -DLLAMA_AVX=on -DLLAMA_AVX2=off -DLLAMA_AVX512=off -DLLAMA_FMA=off -DLLAMA_F16C=off -DCMAKE_BUILD_TYPE=Release -DLLAMA_SERVER_VERBOSE=off" && cmake --build . --config Release
+	cp llama.cpp/build/bin/grpc-server grpc-server-gpu_cuda
+
 	cd llama.cpp && mkdir -p build && cd build && cmake .. "-DLLAMA_AVX=off -DLLAMA_AVX2=off -DLLAMA_AVX512=off -DLLAMA_FMA=off -DLLAMA_F16C=off" && cmake --build . --config Release
+	cp llama.cpp/build/bin/grpc-server .
 	cp llama.cpp/build/bin/grpc-server grpc-server-cpu
 
-	export CMAKE_ARGS="-DLLAMA_AVX=on -DLLAMA_AVX2=off -DLLAMA_AVX512=off -DLLAMA_FMA=off -DLLAMA_F16C=off"
 	cd llama.cpp && mkdir -p build && cd build && cmake .. "-DLLAMA_AVX=on -DLLAMA_AVX2=off -DLLAMA_AVX512=off -DLLAMA_FMA=off -DLLAMA_F16C=off" && cmake --build . --config Release
 	cp llama.cpp/build/bin/grpc-server grpc-server-cpu_avx
 
-	export CMAKE_ARGS="-DLLAMA_AVX=on -DLLAMA_AVX2=on -DLLAMA_AVX512=off -DLLAMA_FMA=on -DLLAMA_F16C=on"
 	cd llama.cpp && mkdir -p build && cd build && cmake .. "-DLLAMA_AVX=on -DLLAMA_AVX2=on -DLLAMA_AVX512=off -DLLAMA_FMA=on -DLLAMA_F16C=on" && cmake --build . --config Release
 	cp llama.cpp/build/bin/grpc-server grpc-server-cpu_avx2
 
-	export CMAKE_ARGS="-DLLAMA_AVX=on -DLLAMA_AVX2=on -DLLAMA_AVX512=on -DLLAMA_FMA=on -DLLAMA_F16C=on"
 	cd llama.cpp && mkdir -p build && cd build && cmake .. "-DLLAMA_AVX=on -DLLAMA_AVX2=on -DLLAMA_AVX512=on -DLLAMA_FMA=on -DLLAMA_F16C=on" && cmake --build . --config Release
 	cp llama.cpp/build/bin/grpc-server grpc-server-cpu_avx512
 endif
-# chmod +x grpc-server-cpu*
-#cp llama.cpp/build/bin/grpc-server .
