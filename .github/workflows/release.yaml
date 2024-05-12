@@ -1,6 +1,6 @@
 name: Build and Release
 
-on: 
+on:
 - push
 - pull_request
 
@@ -60,7 +60,7 @@ jobs:
       - name: Build grpc
         if: steps.cache-grpc.outputs.cache-hit != 'true'
         run: |
-          git clone --recurse-submodules -b ${{ env.GRPC_VERSION }} --depth 1 --shallow-submodules https://github.com/grpc/grpc && \
+          git clone --recurse-submodules -b v1.63.0 --depth 1 --shallow-submodules https://github.com/grpc/grpc && \
           cd grpc && mkdir -p cmake/build && cd cmake/build && cmake -DgRPC_INSTALL=ON \
             -DgRPC_BUILD_TESTS=OFF \
             ../.. && sudo make --jobs 5 --output-sync=target

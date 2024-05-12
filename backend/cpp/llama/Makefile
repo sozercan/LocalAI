@@ -5,9 +5,9 @@ CMAKE_ARGS?=
 BUILD_TYPE?=
 ONEAPI_VARS?=/opt/intel/oneapi/setvars.sh
 
-# If build type is cublas, then we set -DLLAMA_CUBLAS=ON to CMAKE_ARGS automatically
+# If build type is cublas, then we set -DLLAMA_CUDA=ON to CMAKE_ARGS automatically
 ifeq ($(BUILD_TYPE),cublas)
-	CMAKE_ARGS+=-DLLAMA_CUBLAS=ON
+	CMAKE_ARGS+=-DLLAMA_CUDA=ON
 # If build type is openblas then we set -DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS
 # to CMAKE_ARGS automatically
 else ifeq ($(BUILD_TYPE),openblas)
@@ -15,7 +15,7 @@ else ifeq ($(BUILD_TYPE),openblas)
 # If build type is clblas (openCL) we set -DLLAMA_CLBLAST=ON -DCLBlast_DIR=/some/path
 else ifeq ($(BUILD_TYPE),clblas)
 	CMAKE_ARGS+=-DLLAMA_CLBLAST=ON -DCLBlast_DIR=/some/path
-# If it's hipblas we do have also to set CC=/opt/rocm/llvm/bin/clang CXX=/opt/rocm/llvm/bin/clang++ 
+# If it's hipblas we do have also to set CC=/opt/rocm/llvm/bin/clang CXX=/opt/rocm/llvm/bin/clang++
 else ifeq ($(BUILD_TYPE),hipblas)
 	CMAKE_ARGS+=-DLLAMA_HIPBLAS=ON
 # If it's OSX, DO NOT embed the metal library - -DLLAMA_METAL_EMBED_LIBRARY=ON requires further investigation

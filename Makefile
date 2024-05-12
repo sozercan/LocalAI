@@ -70,7 +70,7 @@ UNAME_S := $(shell uname -s)
 endif
 
 ifeq ($(OS),Darwin)
-	
+
 	ifeq ($(OSX_SIGNING_IDENTITY),)
 		OSX_SIGNING_IDENTITY := $(shell security find-identity -v -p codesigning | grep '"' | head -n 1 | sed -E 's/.*"(.*)"/\1/')
 	endif
@@ -98,7 +98,7 @@ endif
 
 ifeq ($(BUILD_TYPE),cublas)
 	CGO_LDFLAGS+=-lcublas -lcudart -L$(CUDA_LIBPATH)
-	export LLAMA_CUBLAS=1
+	export LLAMA_CUDA=1
 	export WHISPER_CUDA=1
 	CGO_LDFLAGS_WHISPER+=-L$(CUDA_LIBPATH)/stubs/ -lcuda
 endif
@@ -155,7 +155,8 @@ endif
 ALL_GRPC_BACKENDS=backend-assets/grpc/huggingface
 ALL_GRPC_BACKENDS+=backend-assets/grpc/bert-embeddings
 ALL_GRPC_BACKENDS+=backend-assets/grpc/llama-cpp
-ALL_GRPC_BACKENDS+=backend-assets/grpc/llama-cpp-noavx
+ALL_GRPC_BACKENDS+=backend-assets/grpc/llama-cpp-avx
+ALL_GRPC_BACKENDS+=backend-assets/grpc/llama-cpp-avx2
 ALL_GRPC_BACKENDS+=backend-assets/grpc/llama-cpp-fallback
 ALL_GRPC_BACKENDS+=backend-assets/grpc/llama-ggml
 ALL_GRPC_BACKENDS+=backend-assets/grpc/gpt4all
@@ -663,12 +664,19 @@ ifeq ($(BUILD_TYPE),metal)
 	cp backend/cpp/llama-default/llama.cpp/build/bin/default.metallib backend-assets/grpc/
 endif
 
-backend-assets/grpc/llama-cpp-noavx: backend-assets/grpc
-	cp -rf backend/cpp/llama backend/cpp/llama-noavx
-	$(MAKE) -C backend/cpp/llama-noavx purge
-	$(info ${GREEN}I llama-cpp build info:noavx${RESET})
-	CMAKE_ARGS="$(CMAKE_ARGS) -DLLAMA_AVX512=OFF -DLLAMA_AVX2=OFF" $(MAKE) VARIANT="llama-noavx" build-llama-cpp-grpc-server
-	cp -rfv backend/cpp/llama-noavx/grpc-server backend-assets/grpc/llama-cpp-noavx
+backend-assets/grpc/llama-cpp-avx2: backend-assets/grpc
+	cp -rf backend/cpp/llama backend/cpp/llama-avx2
+	$(MAKE) -C backend/cpp/llama-avx2 purge
+	$(info ${GREEN}I llama-cpp build info:avx2${RESET})
+	CMAKE_ARGS="$(CMAKE_ARGS) -DLLAMA_AVX512=OFF -DLLAMA_AVX2=ON -DLLAMA_AVX=ON" $(MAKE) VARIANT="llama-avx2" build-llama-cpp-grpc-server
+	cp -rfv backend/cpp/llama-avx/grpc-server backend-assets/grpc/llama-cpp-avx2
+
+backend-assets/grpc/llama-cpp-avx: backend-assets/grpc
+	cp -rf backend/cpp/llama backend/cpp/llama-avx
+	$(MAKE) -C backend/cpp/llama-avx purge
+	$(info ${GREEN}I llama-cpp build info:avx${RESET})
+	CMAKE_ARGS="$(CMAKE_ARGS) -DLLAMA_AVX512=OFF -DLLAMA_AVX2=OFF -DLLAMA_AVX=ON" $(MAKE) VARIANT="llama-avx" build-llama-cpp-grpc-server
+	cp -rfv backend/cpp/llama-avx/grpc-server backend-assets/grpc/llama-cpp-avx
 
 backend-assets/grpc/llama-cpp-fallback: backend-assets/grpc
 	cp -rf backend/cpp/llama backend/cpp/llama-fallback
@@ -676,6 +684,13 @@ backend-assets/grpc/llama-cpp-fallback: backend-assets/grpc
 	$(info ${GREEN}I llama-cpp build info:fallback${RESET})
 	CMAKE_ARGS="$(CMAKE_ARGS) -DLLAMA_F16C=OFF -DLLAMA_AVX512=OFF -DLLAMA_AVX2=OFF -DLLAMA_FMA=OFF" $(MAKE) VARIANT="llama-fallback" build-llama-cpp-grpc-server
 	cp -rfv backend/cpp/llama-fallback/grpc-server backend-assets/grpc/llama-cpp-fallback
+
+backend-assets/grpc/llama-cpp-cuda12: backend-assets/grpc
+	cp -rf backend/cpp/llama backend/cpp/llama-cuda12
+	$(MAKE) -C backend/cpp/llama-cuda12 purge
+	$(info ${GREEN}I llama-cpp build info:cuda12${RESET})
+	CMAKE_ARGS="$(CMAKE_ARGS) -DLLAMA_CUDA=ON" $(MAKE) VARIANT="llama-cuda12" build-llama-cpp-grpc-server
+	cp -rfv backend/cpp/llama-cuda12/grpc-server backend-assets/grpc/llama-cpp-cuda12
 
 backend-assets/grpc/llama-ggml: sources/go-llama.cpp sources/go-llama.cpp/libbinding.a backend-assets/grpc
 	CGO_LDFLAGS="$(CGO_LDFLAGS)" C_INCLUDE_PATH=$(CURDIR)/sources/go-llama.cpp LIBRARY_PATH=$(CURDIR)/sources/go-llama.cpp \
@@ -719,7 +734,7 @@ docker:
 		--build-arg MAKEFLAGS="$(DOCKER_MAKEFLAGS)" \
 		--build-arg BUILD_TYPE=$(BUILD_TYPE) \
 		-t $(DOCKER_IMAGE) .
-	
+
 docker-aio:
 	@echo "Building AIO image with base $(BASE_IMAGE) as $(DOCKER_AIO_IMAGE)"
 	docker build \

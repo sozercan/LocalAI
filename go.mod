@@ -173,3 +173,21 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect
 )
+
+replace github.com/donomii/go-rwkv.cpp => /root/LocalAI/sources/go-rwkv.cpp
+
+replace github.com/ggerganov/whisper.cpp => /root/LocalAI/sources/whisper.cpp
+
+replace github.com/ggerganov/whisper.cpp/bindings/go => /root/LocalAI/sources/whisper.cpp/bindings/go
+
+replace github.com/go-skynet/go-bert.cpp => /root/LocalAI/sources/go-bert.cpp
+
+replace github.com/M0Rf30/go-tiny-dream => /root/LocalAI/sources/go-tiny-dream
+
+replace github.com/mudler/go-piper => /root/LocalAI/sources/go-piper
+
+replace github.com/mudler/go-stable-diffusion => /root/LocalAI/sources/go-stable-diffusion
+
+replace github.com/nomic-ai/gpt4all/gpt4all-bindings/golang => /root/LocalAI/sources/gpt4all/gpt4all-bindings/golang
+
+replace github.com/go-skynet/go-llama.cpp => /root/LocalAI/sources/go-llama.cpp

@@ -13,6 +13,7 @@ import (
 	grpc "github.com/go-skynet/LocalAI/pkg/grpc"
 	"github.com/phayes/freeport"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sys/cpu"
 )
 
 var Aliases map[string]string = map[string]string{
@@ -24,8 +25,11 @@ var Aliases map[string]string = map[string]string{
 
 const (
 	LlamaGGML = "llama-ggml"
-	LLamaCPP  = "llama-cpp"
 
+	LLamaCPP  = "llama-cpp"
+	LLamaCPPCUDA12 = "llama-cpp-cuda12"
+	LLamaCPPAVX2 = "llama-cpp-avx2"
+	LLamaCPPAVX = "llama-cpp-avx"
 	LLamaCPPFallback = "llama-cpp-fallback"
 
 	Gpt4AllLlamaBackend = "gpt4all-llama"
@@ -310,6 +314,20 @@ func (ml *ModelLoader) GreedyLoader(opts ...Option) (grpc.Backend, error) {
 	allBackendsToAutoLoad = append(allBackendsToAutoLoad, autoLoadBackends...)
 	for _, b := range o.externalBackends {
 		allBackendsToAutoLoad = append(allBackendsToAutoLoad, b)
+	}
+
+	// SERTAC
+	for i, v := range allBackendsToAutoLoad {
+		if v == "llama-cpp" {
+			if cpu.X86.HasAVX2 {
+				allBackendsToAutoLoad[i] = LLamaCPPAVX2
+			} else if cpu.X86.HasAVX {
+				allBackendsToAutoLoad[i] = LLamaCPPAVX
+			} else {
+				allBackendsToAutoLoad[i] = LLamaCPPFallback
+			}
+			log.Info().Msgf("Backend: %s", allBackendsToAutoLoad[i])
+		}
 	}
 
 	if o.model != "" {
