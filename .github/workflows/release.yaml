@@ -43,7 +43,8 @@ jobs:
           --platform linux/${{ matrix.platforms }} \
           --output release \
           --cache-from type=gha,scope=$GITHUB_REF_NAME-${{ matrix.platforms }}-release \
-          --cache-to type=gha,mode=max,scope=$GITHUB_REF_NAME-${{ matrix.platforms }}-release
+          --cache-to type=gha,mode=max,scope=$GITHUB_REF_NAME-${{ matrix.platforms }}-release \
+          --build-arg BUILD_TYPE=cublas
       - uses: actions/upload-artifact@v4
         with:
           name: LocalAI-linux
