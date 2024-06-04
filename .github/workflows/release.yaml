@@ -44,6 +44,7 @@ jobs:
           --output release \
           --cache-from type=gha,scope=$GITHUB_REF_NAME-${{ matrix.platforms }}-release \
           --cache-to type=gha,mode=max,scope=$GITHUB_REF_NAME-${{ matrix.platforms }}-release \
+          --build-arg IMAGE_TYPE=core \
           --build-arg BUILD_TYPE=cublas \
           --build-arg CUDA_MAJOR_VERSION=12 \
           --build-arg CUDA_MINOR_VERSION=5
