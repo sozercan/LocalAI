@@ -1,11 +1,20 @@
 name: Build and Release
 
 on:
-- push
-- pull_request
-
-env:
-  GRPC_VERSION: v1.64.0
+  push:
+    paths-ignore:
+      - "docs/**"
+      - "examples/**"
+      - "gallery/**"
+      - "**.tmpl"
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "examples/**"
+      - "gallery/**"
+      - "**.tmpl"
+      - "**.md"
 
 permissions:
   contents: write
@@ -29,7 +38,12 @@ jobs:
       - uses: docker/setup-qemu-action@v3
       - name: Build
         run: |
-          docker build --target release-binaries --platform ${{ matrix.platforms }} --output release .
+          docker build . \
+          --target release-binaries \
+          --platform ${{ matrix.platforms }} \
+          --output release \
+          --cache-from type=gha,scope=$GITHUB_REF_NAME-release \
+          --cache-to type=gha,mode=max,scope=$GITHUB_REF_NAME-release
       - uses: actions/upload-artifact@v4
         with:
           name: LocalAI-linux
