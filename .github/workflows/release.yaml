@@ -42,12 +42,15 @@ jobs:
             --target release-binaries \
             --platform linux/${{ matrix.platforms }} \
             --output release \
-            --cache-from type=gha,scope=$GITHUB_REF_NAME-${{ matrix.platforms }}-release \
-            --cache-to type=gha,mode=max,scope=$GITHUB_REF_NAME-${{ matrix.platforms }}-release \
+            --cache-from type=gha \
+            --cache-to type=gha \
             --build-arg IMAGE_TYPE=core \
             --build-arg BUILD_TYPE=cublas \
             --build-arg CUDA_MAJOR_VERSION=12 \
-            --build-arg CUDA_MINOR_VERSION=5
+            --build-arg CUDA_MINOR_VERSION=5 \
+            --build-arg GRPC_BASE_IMAGE=ubuntu:22.04 \
+            --build-arg GRPC_MAKEFLAGS="--jobs=4 --output-sync=target" \
+            --build-arg GRPC_VERSION=v1.64.0
       - uses: actions/upload-artifact@v4
         with:
           name: LocalAI-linux
