@@ -274,6 +274,16 @@ RUN if [ ! -d "/build/sources/go-piper/piper-phonemize/pi/lib/" ]; then \
 ###################################
 ###################################
 
+# Optional target to build the release binaries for the GitHub release.
+# This target is not the target that will be uploaded to the registry.
+
+FROM scratch AS release-binaries
+COPY --from=builder /build/local-ai ./
+COPY --from=builder /build/backend-assets/grpc/stablediffusion ./
+
+###################################
+###################################
+
 # This is the final target. The result of this target will be the image uploaded to the registry.
 # If you cannot find a more suitable place for an addition, this layer is a suitable place for it.
 FROM requirements-drivers
