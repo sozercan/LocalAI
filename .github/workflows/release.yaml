@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platforms: ["linux/amd64", "linux/arm64"]
+        platforms: ["amd64", "arm64"]
     steps:
       - name: Clone
         uses: actions/checkout@v4
@@ -40,10 +40,10 @@ jobs:
         run: |
           docker build . \
           --target release-binaries \
-          --platform ${{ matrix.platforms }} \
+          --platform linux/${{ matrix.platforms }} \
           --output release \
-          --cache-from type=gha,scope=$GITHUB_REF_NAME-release \
-          --cache-to type=gha,mode=max,scope=$GITHUB_REF_NAME-release
+          --cache-from type=gha,scope=$GITHUB_REF_NAME-${{ matrix.platforms }}-release \
+          --cache-to type=gha,mode=max,scope=$GITHUB_REF_NAME-${{ matrix.platforms }}-release
       - uses: actions/upload-artifact@v4
         with:
           name: LocalAI-linux
