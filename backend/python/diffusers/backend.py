@@ -1,4 +1,17 @@
 #!/usr/bin/env python3
+from diffusers.schedulers import (
+    DDIMScheduler,
+    DPMSolverMultistepScheduler,
+    DPMSolverSinglestepScheduler,
+    EulerAncestralDiscreteScheduler,
+    EulerDiscreteScheduler,
+    HeunDiscreteScheduler,
+    KDPM2AncestralDiscreteScheduler,
+    KDPM2DiscreteScheduler,
+    LMSDiscreteScheduler,
+    PNDMScheduler,
+    UniPCMultistepScheduler,
+)
 from concurrent import futures
 import traceback
 import argparse
@@ -52,20 +65,6 @@ def sc(self, clip_input, images): return images, [False for i in images]
 
 # edit the StableDiffusionSafetyChecker class so that, when called, it just returns the images and an array of True values
 safety_checker.StableDiffusionSafetyChecker.forward = sc
-
-from diffusers.schedulers import (
-    DDIMScheduler,
-    DPMSolverMultistepScheduler,
-    DPMSolverSinglestepScheduler,
-    EulerAncestralDiscreteScheduler,
-    EulerDiscreteScheduler,
-    HeunDiscreteScheduler,
-    KDPM2AncestralDiscreteScheduler,
-    KDPM2DiscreteScheduler,
-    LMSDiscreteScheduler,
-    PNDMScheduler,
-    UniPCMultistepScheduler,
-)
 
 
 # The scheduler list mapping was taken from here: https://github.com/neggles/animatediff-cli/blob/6f336f5f4b5e38e85d7f06f1744ef42d0a45f2a7/src/animatediff/schedulers.py#L39
@@ -138,7 +137,8 @@ def get_scheduler(name: str, config: dict = {}):
         sched_class = DPMSolverMultistepScheduler
         config["algorithm_type"] = "sde-dpmsolver++"
     else:
-        raise ValueError(f"Invalid scheduler '{'k_' if is_karras else ''}{name}'")
+        raise ValueError(f"Invalid scheduler '{
+                         'k_' if is_karras else ''}{name}'")
 
     return sched_class.from_config(config)
 
@@ -181,10 +181,11 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
                     local = True
                     modelFile = request.ModelFile
 
-            fromSingleFile = request.Model.startswith("http") or request.Model.startswith("/") or local
+            fromSingleFile = request.Model.startswith(
+                "http") or request.Model.startswith("/") or local
             self.img2vid = False
             self.txt2vid = False
-            ## img2img
+            # img2img
             if (request.PipelineType == "StableDiffusionImg2ImgPipeline") or (request.IMG2IMG and request.PipelineType == ""):
                 if fromSingleFile:
                     self.pipe = StableDiffusionImg2ImgPipeline.from_single_file(modelFile,
@@ -196,7 +197,7 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
             elif request.PipelineType == "StableDiffusionDepth2ImgPipeline":
                 self.pipe = StableDiffusionDepth2ImgPipeline.from_pretrained(request.Model,
                                                                              torch_dtype=torchType)
-            ## img2vid
+            # img2vid
             elif request.PipelineType == "StableVideoDiffusionPipeline":
                 self.img2vid = True
                 self.pipe = StableVideoDiffusionPipeline.from_pretrained(
@@ -204,7 +205,7 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
                 )
                 if not DISABLE_CPU_OFFLOAD:
                     self.pipe.enable_model_cpu_offload()
-            ## text2img
+            # text2img
             elif request.PipelineType == "AutoPipelineForText2Image" or request.PipelineType == "":
                 self.pipe = AutoPipelineForText2Image.from_pretrained(request.Model,
                                                                       torch_dtype=torchType,
@@ -247,29 +248,38 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
                         use_safetensors=True,
                         variant=variant)
             elif request.PipelineType == "FluxPipeline":
+                if fromSingleFile:
+                    self.pipe = FluxPipeline.from_single_file(modelFile,
+                                                              torch_dtype=torchType,
+                                                              use_safetensors=True)
+                else:
                     self.pipe = FluxPipeline.from_pretrained(
                         request.Model,
                         torch_dtype=torch.bfloat16)
-                    if request.LowVRAM:
-                        self.pipe.enable_model_cpu_offload()
+                if request.LowVRAM:
+                    self.pipe.enable_model_cpu_offload()
             elif request.PipelineType == "FluxTransformer2DModel":
-                    dtype = torch.bfloat16
-                    # specify from environment or default to "ChuckMcSneed/FLUX.1-dev"
-                    bfl_repo = os.environ.get("BFL_REPO", "ChuckMcSneed/FLUX.1-dev")
+                dtype = torch.bfloat16
+                # specify from environment or default to "ChuckMcSneed/FLUX.1-dev"
+                bfl_repo = os.environ.get(
+                    "BFL_REPO", "ChuckMcSneed/FLUX.1-dev")
 
-                    transformer = FluxTransformer2DModel.from_single_file(modelFile, torch_dtype=dtype)
-                    quantize(transformer, weights=qfloat8)
-                    freeze(transformer)
-                    text_encoder_2 = T5EncoderModel.from_pretrained(bfl_repo, subfolder="text_encoder_2", torch_dtype=dtype)
-                    quantize(text_encoder_2, weights=qfloat8)
-                    freeze(text_encoder_2)
+                transformer = FluxTransformer2DModel.from_single_file(
+                    modelFile, torch_dtype=dtype)
+                quantize(transformer, weights=qfloat8)
+                freeze(transformer)
+                text_encoder_2 = T5EncoderModel.from_pretrained(
+                    bfl_repo, subfolder="text_encoder_2", torch_dtype=dtype)
+                quantize(text_encoder_2, weights=qfloat8)
+                freeze(text_encoder_2)
 
-                    self.pipe = FluxPipeline.from_pretrained(bfl_repo, transformer=None, text_encoder_2=None, torch_dtype=dtype)
-                    self.pipe.transformer = transformer
-                    self.pipe.text_encoder_2 = text_encoder_2
+                self.pipe = FluxPipeline.from_pretrained(
+                    bfl_repo, transformer=None, text_encoder_2=None, torch_dtype=dtype)
+                self.pipe.transformer = transformer
+                self.pipe.text_encoder_2 = text_encoder_2
 
-                    if request.LowVRAM:
-                        self.pipe.enable_model_cpu_offload()
+                if request.LowVRAM:
+                    self.pipe.enable_model_cpu_offload()
 
             if CLIPSKIP and request.CLIPSkip != 0:
                 self.clip_skip = request.CLIPSkip
@@ -279,12 +289,14 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
             # torch_dtype needs to be customized. float16 for GPU, float32 for CPU
             # TODO: this needs to be customized
             if request.SchedulerType != "":
-                self.pipe.scheduler = get_scheduler(request.SchedulerType, self.pipe.scheduler.config)
+                self.pipe.scheduler = get_scheduler(
+                    request.SchedulerType, self.pipe.scheduler.config)
 
             if COMPEL:
                 self.compel = Compel(
                     tokenizer=[self.pipe.tokenizer, self.pipe.tokenizer_2],
-                    text_encoder=[self.pipe.text_encoder, self.pipe.text_encoder_2],
+                    text_encoder=[self.pipe.text_encoder,
+                                  self.pipe.text_encoder_2],
                     returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
                     requires_pooled=[False, True]
                 )
@@ -302,7 +314,8 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
                 # get base path of modelFile
                 modelFileBase = os.path.dirname(request.ModelFile)
                 # modify LoraAdapter to be relative to modelFileBase
-                request.LoraAdapter = os.path.join(modelFileBase, request.LoraAdapter)
+                request.LoraAdapter = os.path.join(
+                    modelFileBase, request.LoraAdapter)
             device = "cpu" if not request.CUDA else "cuda"
             self.device = device
             if request.LoraAdapter:
@@ -344,10 +357,12 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
         for layer, elems in updates.items():
 
             if "text" in layer:
-                layer_infos = layer.split(LORA_PREFIX_TEXT_ENCODER + "_")[-1].split("_")
+                layer_infos = layer.split(
+                    LORA_PREFIX_TEXT_ENCODER + "_")[-1].split("_")
                 curr_layer = self.pipe.text_encoder
             else:
-                layer_infos = layer.split(LORA_PREFIX_UNET + "_")[-1].split("_")
+                layer_infos = layer.split(
+                    LORA_PREFIX_UNET + "_")[-1].split("_")
                 curr_layer = self.pipe.unet
 
             # find the target layer
@@ -376,9 +391,11 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
 
             # update weight
             if len(weight_up.shape) == 4:
-                curr_layer.weight.data += multiplier * alpha * torch.mm(weight_up.squeeze(3).squeeze(2), weight_down.squeeze(3).squeeze(2)).unsqueeze(2).unsqueeze(3)
+                curr_layer.weight.data += multiplier * alpha * torch.mm(weight_up.squeeze(
+                    3).squeeze(2), weight_down.squeeze(3).squeeze(2)).unsqueeze(2).unsqueeze(3)
             else:
-                curr_layer.weight.data += multiplier * alpha * torch.mm(weight_up, weight_down)
+                curr_layer.weight.data += multiplier * \
+                    alpha * torch.mm(weight_up, weight_down)
 
     def GenerateImage(self, request, context):
 
@@ -438,18 +455,21 @@ class BackendServicer(backend_pb2_grpc.BackendServicer):
             image = image.resize((1024, 576))
 
             generator = torch.manual_seed(request.seed)
-            frames = self.pipe(image, guidance_scale=self.cfg_scale, decode_chunk_size=CHUNK_SIZE, generator=generator).frames[0]
+            frames = self.pipe(image, guidance_scale=self.cfg_scale,
+                               decode_chunk_size=CHUNK_SIZE, generator=generator).frames[0]
             export_to_video(frames, request.dst, fps=FPS)
             return backend_pb2.Result(message="Media generated successfully", success=True)
 
         if self.txt2vid:
-            video_frames = self.pipe(prompt, guidance_scale=self.cfg_scale, num_inference_steps=steps, num_frames=int(FRAMES)).frames
+            video_frames = self.pipe(prompt, guidance_scale=self.cfg_scale,
+                                     num_inference_steps=steps, num_frames=int(FRAMES)).frames
             export_to_video(video_frames, request.dst)
             return backend_pb2.Result(message="Media generated successfully", success=True)
 
         image = {}
         if COMPEL:
-            conditioning, pooled = self.compel.build_conditioning_tensor(prompt)
+            conditioning, pooled = self.compel.build_conditioning_tensor(
+                prompt)
             kwargs["prompt_embeds"] = conditioning
             kwargs["pooled_prompt_embeds"] = pooled
             # pass the kwargs dictionary to the self.pipe method
