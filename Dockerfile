@@ -120,10 +120,10 @@ ENV BUILD_TYPE=${BUILD_TYPE}
 
 # Vulkan requirements
 RUN <<EOT bash
-    if [ "${BUILD_TYPE}" = "vulkan" ]; then
+    if [ "${BUILD_TYPE}" = "vulkan" ] || [ "${BUILD_TYPE}" = "kompute" ]; then
         apt-get update && \
         apt-get install -y  --no-install-recommends \
-            software-properties-common pciutils wget python3 && \
+            software-properties-common pciutils wget python3 libfmt-dev && \
         wget http://launchpadlibrarian.net/671893058/libvulkan1_1.3.250.0-1_arm64.deb && \
         wget http://launchpadlibrarian.net/671893055/libvulkan-dev_1.3.250.0-1_arm64.deb && \
         dpkg -i libvulkan1_1.3.250.0-1_arm64.deb && \
