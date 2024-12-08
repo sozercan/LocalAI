@@ -120,15 +120,17 @@ ENV BUILD_TYPE=${BUILD_TYPE}
 
 # Vulkan requirements
 RUN <<EOT bash
-    if [ "${BUILD_TYPE}" = "vulkan" ]; then
+    if [ "${BUILD_TYPE}" = "vulkan" ] || [ "${BUILD_TYPE}" = "kompute" ]; then
         apt-get update && \
         apt-get install -y  --no-install-recommends \
-            software-properties-common pciutils wget gpg-agent && \
-        wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | apt-key add - && \
-        wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list && \
-        apt-get update && \
-        apt-get install -y \
-            vulkan-sdk && \
+            software-properties-common pciutils wget python3 libfmt-dev && \
+        wget http://launchpadlibrarian.net/671893058/libvulkan1_1.3.250.0-1_arm64.deb && \
+        wget http://launchpadlibrarian.net/671893055/libvulkan-dev_1.3.250.0-1_arm64.deb && \
+        dpkg -i libvulkan1_1.3.250.0-1_arm64.deb && \
+        dpkg -i libvulkan-dev_1.3.250.0-1_arm64.deb && \
+        wget https://sertacstoragevs.blob.core.windows.net/glslc/glslc && \
+        chmod +x glslc && \
+        mv glslc /usr/bin/ && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/*
     fi
@@ -329,7 +331,8 @@ RUN make prepare
 ## If it's CUDA or hipblas, we want to skip some of the llama-compat backends to save space
 ## We only leave the most CPU-optimized variant and the fallback for the cublas/hipblas build
 ## (both will use CUDA or hipblas for the actual computation)
-RUN if [ "${BUILD_TYPE}" = "cublas" ] || [ "${BUILD_TYPE}" = "hipblas" ]; then \
+## ARM CPUs do not support AVX extensions, so we skip the AVX backends
+RUN if [ "${BUILD_TYPE}" = "cublas" ] || [ "${BUILD_TYPE}" = "hipblas" ] || [ "${TARGETARCH}" = "arm64" ]; then \
         SKIP_GRPC_BACKEND="backend-assets/grpc/llama-cpp-avx backend-assets/grpc/llama-cpp-avx2" make build; \
     else \
         make build; \
