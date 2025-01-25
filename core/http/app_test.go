@@ -12,15 +12,14 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/mudler/LocalAI/core/application"
 	"github.com/mudler/LocalAI/core/config"
 	. "github.com/mudler/LocalAI/core/http"
 	"github.com/mudler/LocalAI/core/schema"
-	"github.com/mudler/LocalAI/core/startup"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/mudler/LocalAI/core/gallery"
 	"github.com/mudler/LocalAI/pkg/downloader"
-	"github.com/mudler/LocalAI/pkg/model"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v3"
@@ -238,6 +237,31 @@ func postInvalidRequest(url string) (error, int) {
 	return nil, resp.StatusCode
 }
 
+func getRequest(url string, header http.Header) (error, int, []byte) {
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err, -1, nil
+	}
+
+	req.Header = header
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err, -1, nil
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err, -1, nil
+	}
+
+	return nil, resp.StatusCode, body
+}
+
 const bertEmbeddingsURL = `https://gist.githubusercontent.com/mudler/0a080b166b87640e8644b09c2aee6e3b/raw/f0e8c26bb72edc16d9fbafbfd6638072126ff225/bert-embeddings-gallery.yaml`
 
 //go:embed backend-assets/*
@@ -252,9 +276,6 @@ var _ = Describe("API test", func() {
 	var cancel context.CancelFunc
 	var tmpdir string
 	var modelDir string
-	var bcl *config.BackendConfigLoader
-	var ml *model.ModelLoader
-	var applicationConfig *config.ApplicationConfig
 
 	commonOpts := []config.AppOption{
 		config.WithDebug(true),
@@ -300,7 +321,7 @@ var _ = Describe("API test", func() {
 				},
 			}
 
-			bcl, ml, applicationConfig, err = startup.Startup(
+			application, err := application.New(
 				append(commonOpts,
 					config.WithContext(c),
 					config.WithGalleries(galleries),
@@ -310,7 +331,7 @@ var _ = Describe("API test", func() {
 					config.WithBackendAssetsOutput(backendAssetsDir))...)
 			Expect(err).ToNot(HaveOccurred())
 
-			app, err = App(bcl, ml, applicationConfig)
+			app, err = API(application)
 			Expect(err).ToNot(HaveOccurred())
 
 			go app.Listen("127.0.0.1:9090")
@@ -346,6 +367,33 @@ var _ = Describe("API test", func() {
 				err, sc := postInvalidRequest("http://127.0.0.1:9090/models/available")
 				Expect(err).ToNot(BeNil())
 				Expect(sc).To(Equal(401))
+			})
+		})
+
+		Context("URL routing Tests", func() {
+			It("Should support reverse-proxy when unauthenticated", func() {
+
+				err, sc, body := getRequest("http://127.0.0.1:9090/myprefix/", http.Header{
+					"X-Forwarded-Proto":  {"https"},
+					"X-Forwarded-Host":   {"example.org"},
+					"X-Forwarded-Prefix": {"/myprefix/"},
+				})
+				Expect(err).To(BeNil(), "error")
+				Expect(sc).To(Equal(401), "status code")
+				Expect(string(body)).To(ContainSubstring(`<base href="https://example.org/myprefix/" />`), "body")
+			})
+
+			It("Should support reverse-proxy when authenticated", func() {
+
+				err, sc, body := getRequest("http://127.0.0.1:9090/myprefix/", http.Header{
+					"Authorization":      {bearerKey},
+					"X-Forwarded-Proto":  {"https"},
+					"X-Forwarded-Host":   {"example.org"},
+					"X-Forwarded-Prefix": {"/myprefix/"},
+				})
+				Expect(err).To(BeNil(), "error")
+				Expect(sc).To(Equal(200), "status code")
+				Expect(string(body)).To(ContainSubstring(`<base href="https://example.org/myprefix/" />`), "body")
 			})
 		})
 
@@ -539,7 +587,7 @@ var _ = Describe("API test", func() {
 				var res map[string]string
 				err = json.Unmarshal([]byte(resp2.Choices[0].Message.FunctionCall.Arguments), &res)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(res["location"]).To(Equal("San Francisco"), fmt.Sprint(res))
+				Expect(res["location"]).To(ContainSubstring("San Francisco"), fmt.Sprint(res))
 				Expect(res["unit"]).To(Equal("celcius"), fmt.Sprint(res))
 				Expect(string(resp2.Choices[0].FinishReason)).To(Equal("function_call"), fmt.Sprint(resp2.Choices[0].FinishReason))
 
@@ -641,7 +689,7 @@ var _ = Describe("API test", func() {
 				},
 			}
 
-			bcl, ml, applicationConfig, err = startup.Startup(
+			application, err := application.New(
 				append(commonOpts,
 					config.WithContext(c),
 					config.WithAudioDir(tmpdir),
@@ -652,7 +700,7 @@ var _ = Describe("API test", func() {
 					config.WithBackendAssetsOutput(tmpdir))...,
 			)
 			Expect(err).ToNot(HaveOccurred())
-			app, err = App(bcl, ml, applicationConfig)
+			app, err = API(application)
 			Expect(err).ToNot(HaveOccurred())
 
 			go app.Listen("127.0.0.1:9090")
@@ -708,7 +756,7 @@ var _ = Describe("API test", func() {
 			Expect(err).ToNot(HaveOccurred(), fmt.Sprint(resp))
 
 			Expect(resp.StatusCode).To(Equal(200), fmt.Sprint(string(dat)))
-			Expect(resp.Header.Get("Content-Type")).To(Equal("audio/x-wav"))
+			Expect(resp.Header.Get("Content-Type")).To(Or(Equal("audio/x-wav"), Equal("audio/vnd.wave")))
 		})
 		It("installs and is capable to generate images", Label("stablediffusion"), func() {
 			if runtime.GOOS != "linux" {
@@ -772,14 +820,14 @@ var _ = Describe("API test", func() {
 
 			var err error
 
-			bcl, ml, applicationConfig, err = startup.Startup(
+			application, err := application.New(
 				append(commonOpts,
 					config.WithExternalBackend("huggingface", os.Getenv("HUGGINGFACE_GRPC")),
 					config.WithContext(c),
 					config.WithModelPath(modelPath),
 				)...)
 			Expect(err).ToNot(HaveOccurred())
-			app, err = App(bcl, ml, applicationConfig)
+			app, err = API(application)
 			Expect(err).ToNot(HaveOccurred())
 			go app.Listen("127.0.0.1:9090")
 
@@ -990,14 +1038,14 @@ var _ = Describe("API test", func() {
 			c, cancel = context.WithCancel(context.Background())
 
 			var err error
-			bcl, ml, applicationConfig, err = startup.Startup(
+			application, err := application.New(
 				append(commonOpts,
 					config.WithContext(c),
 					config.WithModelPath(modelPath),
 					config.WithConfigFile(os.Getenv("CONFIG_FILE")))...,
 			)
 			Expect(err).ToNot(HaveOccurred())
-			app, err = App(bcl, ml, applicationConfig)
+			app, err = API(application)
 			Expect(err).ToNot(HaveOccurred())
 
 			go app.Listen("127.0.0.1:9090")

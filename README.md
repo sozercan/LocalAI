@@ -126,10 +126,10 @@ If you want to help and contribute, issues up for grabs: https://github.com/mudl
 
 ## 🚀 [Features](https://localai.io/features/)
 
-- 📖 [Text generation with GPTs](https://localai.io/features/text-generation/) (`llama.cpp`, `gpt4all.cpp`, ... [:book: and more](https://localai.io/model-compatibility/index.html#model-compatibility-table))
+- 📖 [Text generation with GPTs](https://localai.io/features/text-generation/) (`llama.cpp`, `transformers`, `vllm` ... [:book: and more](https://localai.io/model-compatibility/index.html#model-compatibility-table))
 - 🗣 [Text to Audio](https://localai.io/features/text-to-audio/)
 - 🔈 [Audio to Text](https://localai.io/features/audio-to-text/) (Audio transcription with `whisper.cpp`)
-- 🎨 [Image generation with stable diffusion](https://localai.io/features/image-generation)
+- 🎨 [Image generation](https://localai.io/features/image-generation)
 - 🔥 [OpenAI-alike tools API](https://localai.io/features/openai-functions/) 
 - 🧠 [Embeddings generation for vector databases](https://localai.io/features/embeddings/)
 - ✍️ [Constrained grammars](https://localai.io/features/constrained_grammars/)
@@ -137,6 +137,7 @@ If you want to help and contribute, issues up for grabs: https://github.com/mudl
 - 🥽 [Vision API](https://localai.io/features/gpt-vision/)
 - 📈 [Reranker API](https://localai.io/features/reranker/)
 - 🆕🖧 [P2P Inferencing](https://localai.io/features/distribute/)
+- 🔊 Voice activity detection (Silero-VAD support)
 - 🌍 Integrated WebUI!
 
 ## 💻 Usage
@@ -159,6 +160,7 @@ Model galleries
 Other:
 - Helm chart https://github.com/go-skynet/helm-charts
 - VSCode extension https://github.com/badgooooor/localai-vscode-plugin
+- Langchain: https://python.langchain.com/docs/integrations/providers/localai/
 - Terminal utility https://github.com/djcopley/ShellOracle
 - Local Smart assistant https://github.com/mudler/LocalAGI
 - Home Assistant https://github.com/sammcj/homeassistant-localai / https://github.com/drndos/hass-openai-custom-conversation / https://github.com/valentinfrlch/ha-gpt4vision
